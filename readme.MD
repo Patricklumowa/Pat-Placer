@@ -16,7 +16,7 @@
 
 <p align="center">
   <strong>Consider donating:</strong><br>
-  <a href="https://ko-fi.com/S6S51LLDMK"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi"></a>
+  <a href="https://ko-fi.com/patricius"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi"></a>
 </p>
 
 ---
