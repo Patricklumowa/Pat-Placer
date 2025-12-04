@@ -1,5 +1,6 @@
+
 <p align="center">
-  <img src="Extension/icons/dragon.png" alt="PatPlacer Dragon" width="80" height="80" style="image-rendering: pixelated;">
+  <img src="Extension/icons/dragon.png" alt="PatPlacer Dragon" width="120" height="120" style="image-rendering: pixelated;">
 </p>
 
 <h1 align="center">🎮 PatPlacer</h1>
@@ -9,21 +10,19 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0-8338ec?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/platform-Chrome-00d9ff?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/pixels-∞-ff006e?style=flat-square" alt="Pixels">
 </p>
 
 <p align="center">
   <strong>Consider donating:</strong><br>
-  <a href="https://ko-fi.com/patricius"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi"></a>
+  <a href="https://ko-fi.com/S6S51LLDMK"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi"></a>
 </p>
 
 ---
 
 ## ⚔️ What is PatPlacer?
 
-PatPlacer is a Chrome extension designed for artists and communities who want to place pixel art on [wplace.live](https://wplace.live) with surgical precision. Whether you're defending territory, collaborating on massive murals, or just want your art placed *exactly* where you want it—PatPlacer has your back.
+PatPlacer is a Browser extension designed for artists and communities who want to place pixel art on [wplace.live](https://wplace.live) with surgical precision. Whether you're defending territory, collaborating on massive murals, or just want your art placed *exactly* where you want it—PatPlacer has your back.
 
 **This is not a bot.** PatPlacer is a template overlay and batch drafting tool that helps you visualize and queue pixel placements efficiently.
 
@@ -126,9 +125,9 @@ Apache License 2.0 — See [LICENSE](LICENSE) for details.
 </p>
 
 <p align="center">
-  <img src="Extension/icons/wizard.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/alien.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/girl.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/robot.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/monster.png" width="32" style="image-rendering: pixelated;">
+  <img src="Extension/icons/wizard.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/alien.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/girl.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/robot.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/monster.png" width="62" style="image-rendering: pixelated;">
 </p>
