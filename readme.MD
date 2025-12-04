@@ -58,7 +58,7 @@ PatPlacer is a Browser extension designed for artists and communities who want t
 
 ## 🚀 Installation
 
-1. **Download** the latest release from the [Releases](https://github.com/Patricklumowa/PatPlacer/releases) section
+1. **Download** the latest release from the [Releases](https://github.com/Patricklumowa/Pat-Placer/releases) section
 
 2. **Extract** the ZIP file to a folder on your computer
 
