@@ -1,0 +1,2223 @@
+
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=VT323&display=swap");
+
+/* ============================================================
+   CSS VARIABLES - Vibrant Game Palette
+   ============================================================ */
+:root {
+  --pp-font: "Orbitron", "VT323", monospace;
+  --pp-font-pixel: "Press Start 2P", monospace;
+
+  /* Rich gaming palette - Deep purples, vibrant teals, hot pinks */
+  --pp-bg: #0a0e27;
+  --pp-bg-dark: #050812;
+  --pp-bg-light: #1a1f3a;
+  --pp-bg-highlight: #2d3561;
+
+  /* Vibrant accent colors - inspired by classic console games */
+  --pp-primary: #ff006e; /* Hot pink - Primary action */
+  --pp-secondary: #00d9ff; /* Cyan - Info & secondary */
+  --pp-accent-purple: #8338ec; /* Purple - Highlights */
+  --pp-accent-green: #3dd98c; /* Neon green - Success */
+
+  /* Text colors */
+  --pp-text: #ffffff;
+  --pp-text-bright: #ffff00; /* Neon yellow */
+  --pp-text-dim: #888899;
+
+  /* Status colors - Game themed */
+  --pp-hp: #ff1744; /* Bright red for health */
+  --pp-mp: #00b4ff; /* Bright blue for mana */
+  --pp-xp: #76ff03; /* Lime green for experience */
+
+  /* UI Elements */
+  --pp-border: #3d3d5c;
+  --pp-border-light: #5d5d8a;
+  --pp-border-bright: #ffff00;
+
+  /* Wide compact panel */
+  --pp-panel-width: 380px;
+  --pp-pixel-border: 2px;
+}
+
+/* ============================================================
+   RETRO 8-BIT GAME MAP BACKGROUND - Authentic Pixel Tiles
+   ============================================================ */
+body {
+  /* Base color - classic game grass/ground */
+  background-color: #2d5a27;
+  
+  /* Multi-layer 8-bit tile pattern */
+  background-image:
+    /* Layer 1: Pixel grid lines (tile borders) */
+    linear-gradient(to right, rgba(0,0,0,0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.15) 1px, transparent 1px),
+    
+    /* Layer 2: Grass texture variation - darker patches */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 16px,
+      rgba(20,60,20,0.4) 16px,
+      rgba(20,60,20,0.4) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 32px,
+      rgba(40,80,30,0.3) 32px,
+      rgba(40,80,30,0.3) 48px
+    ),
+    
+    /* Layer 3: Scattered pixel "flowers" or detail dots */
+    radial-gradient(circle at 8px 8px, #4a8f3a 2px, transparent 2px),
+    radial-gradient(circle at 24px 24px, #3d7a2f 2px, transparent 2px),
+    radial-gradient(circle at 40px 8px, #5ca04a 2px, transparent 2px),
+    radial-gradient(circle at 8px 40px, #4a8f3a 2px, transparent 2px),
+    
+    /* Layer 4: Path/dirt tiles scattered */
+    radial-gradient(circle at 48px 48px, rgba(139,119,87,0.3) 8px, transparent 8px),
+    radial-gradient(circle at 0px 32px, rgba(139,119,87,0.2) 6px, transparent 6px),
+    
+    /* Layer 5: Water/pond tiles */
+    radial-gradient(ellipse at 80px 16px, rgba(64,164,223,0.25) 10px, transparent 10px),
+    
+    /* Layer 6: Bush/tree shadows */
+    radial-gradient(circle at 64px 64px, rgba(20,50,20,0.35) 12px, transparent 12px),
+    radial-gradient(circle at 16px 80px, rgba(20,50,20,0.25) 8px, transparent 8px);
+  
+  /* Tile sizes - 16px base tile like classic games */
+  background-size:
+    16px 16px,
+    16px 16px,
+    48px 48px,
+    64px 64px,
+    48px 48px,
+    48px 48px,
+    48px 48px,
+    48px 48px,
+    96px 96px,
+    96px 96px,
+    128px 128px,
+    96px 96px,
+    96px 96px;
+  
+  background-attachment: fixed;
+  min-height: 100vh;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ============================================================
+   MAIN PANEL - Cyberpunk Game Window
+   ============================================================ */
+#patplacer-panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: var(--pp-panel-width);
+  max-height: 85vh;
+  background: var(--pp-bg);
+  font-family: var(--pp-font);
+  font-size: 14px;
+  color: var(--pp-text);
+  z-index: 999999;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+
+  /* Triple-layer pixel border for retro depth */
+  border: 3px solid var(--pp-accent-purple);
+  box-shadow: 0 0 0 2px var(--pp-primary), inset 0 0 0 1px var(--pp-secondary), 6px 6px 0 rgba(255, 0, 110, 0.3);
+
+  /* Subtle inner glow */
+  background-clip: padding-box;
+}
+
+/* ============================================================
+   INFO PANEL - Left Side Panel
+   ============================================================ */
+.pp-info-panel {
+  position: absolute;
+  top: 0;
+  right: 100%;
+  margin-right: 10px;
+  width: 190px;
+  background: var(--pp-bg);
+  border: 3px solid var(--pp-accent-purple);
+  box-shadow: 0 0 0 2px var(--pp-primary), -4px 4px 0 rgba(131, 56, 236, 0.3);
+  display: flex;
+  flex-direction: column;
+  z-index: 0;
+}
+
+.pp-info-panel-header {
+  background: linear-gradient(180deg, #8338ec 0%, #5a189a 100%);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 3px solid #5a189a;
+  font-family: var(--pp-font-pixel);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pp-info-panel-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+/* Preview Section */
+.pp-info-preview {
+  padding: 8px;
+  background: var(--pp-bg-dark);
+  border-bottom: 2px solid var(--pp-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+  position: relative;
+}
+
+.pp-info-canvas {
+  max-width: 170px;
+  max-height: 170px;
+  image-rendering: pixelated;
+  border: 2px solid var(--pp-accent-purple);
+  box-shadow: 0 0 8px rgba(131, 56, 236, 0.4);
+  display: none; /* Hidden by default until image loaded */
+}
+
+.pp-info-no-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--pp-text-dim);
+  font-size: 11px;
+  font-family: var(--pp-font-pixel);
+  text-transform: uppercase;
+}
+
+.pp-no-image-icon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.4;
+  image-rendering: pixelated;
+}
+
+/* Stats Section */
+.pp-info-stats {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 2px solid var(--pp-border);
+}
+
+.pp-info-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: linear-gradient(90deg, rgba(131, 56, 236, 0.15), transparent);
+  border-left: 3px solid var(--pp-accent-purple);
+}
+
+.pp-info-stat-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.pp-info-stat-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.pp-info-stat-value {
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+}
+
+.pp-info-stat-label {
+  font-family: var(--pp-font-pixel);
+  font-size: 8px;
+  color: var(--pp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Progress Section */
+.pp-info-progress {
+  padding: 8px;
+}
+
+.pp-info-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-family: var(--pp-font-pixel);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pp-secondary);
+  text-transform: uppercase;
+}
+
+.pp-info-progress-bar {
+  height: 12px;
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.pp-info-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pp-primary) 0%, var(--pp-secondary) 100%);
+  box-shadow: 0 0 8px var(--pp-primary);
+  transition: width 0.3s ease;
+}
+
+.pp-info-progress-text {
+  display: block;
+  text-align: center;
+  margin-top: 4px;
+  font-family: var(--pp-font-pixel);
+  font-size: 10px;
+  color: var(--pp-text);
+}
+
+/* Night sky decoration */
+.pp-deco-night {
+  width: 60px;
+  height: 60px;
+  top: 8px;
+  right: 50px;
+}
+
+/* ============================================================
+   FLOATING DECORATIONS - Pixel Art Characters
+   ============================================================ */
+.pp-deco {
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 1;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(131, 56, 236, 0.7));
+}
+
+.pp-deco-alien {
+  width: 44px;
+  height: 44px;
+  top: -26px;
+  left: -26px;
+  animation: pp-float 3s ease-in-out infinite;
+}
+
+.pp-deco-star {
+  width: 36px;
+  height: 36px;
+  bottom: 50px;
+  right: -20px;
+  animation: pp-float 2.5s ease-in-out infinite reverse;
+  opacity: 1;
+}
+
+.pp-deco-barrel {
+  width: 40px;
+  height: 40px;
+  bottom: -24px;
+  left: 50px;
+  animation: pp-barrel-wobble 4s ease-in-out infinite;
+  opacity: 1;
+}
+
+.pp-deco-wizard {
+  width: 38px;
+  height: 38px;
+  top: 50%;
+  right: -22px;
+  animation: pp-float 3.5s ease-in-out infinite;
+  opacity: 1;
+}
+
+
+.pp-deco-dragon {
+  width: 72px;
+  height: 72px;
+  bottom: -30px;
+  left: -28px;
+  animation: pp-float 4s ease-in-out infinite;
+}
+
+.pp-deco-girl {
+  width: 92px;
+  height: 92px;
+  top: 25%;
+  left: -40px;
+  animation: pp-float 3.2s ease-in-out infinite reverse;
+}
+
+.pp-deco-axe {
+  width: 40px;
+  height: 40px;
+  bottom: 80px;
+  right: -24px;
+  animation: pp-barrel-wobble 3s ease-in-out infinite;
+}
+
+/* Processing panel decorations */
+.pp-deco-proc-dragon {
+  width: 56px;
+  height: 56px;
+  top: 10px;
+  left: 10px;
+  animation: pp-float 4s ease-in-out infinite;
+}
+
+.pp-deco-proc-sword {
+  width: 48px;
+  height: 48px;
+  top: 10px;
+  right: 50px;
+  animation: pp-barrel-wobble 3s ease-in-out infinite;
+}
+
+.pp-deco-proc-potion {
+  width: 44px;
+  height: 44px;
+  bottom: 10px;
+  left: 60px;
+  animation: pp-float 3.5s ease-in-out infinite reverse;
+}
+
+.pp-deco-proc-star {
+  width: 40px;
+  height: 40px;
+  bottom: 10px;
+  right: 80px;
+  animation: pp-float 2.8s ease-in-out infinite;
+}
+
+.pp-deco-proc-robot {
+  width: 52px;
+  height: 52px;
+  top: 40%;
+  left: 8px;
+  animation: pp-float 3.8s ease-in-out infinite;
+}
+
+.pp-deco-proc-monster {
+  width: 52px;
+  height: 52px;
+  top: 40%;
+  right: 8px;
+  animation: pp-float 4.2s ease-in-out infinite reverse;
+}
+
+@keyframes pp-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
+}
+
+@keyframes pp-barrel-wobble {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+#patplacer-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================================
+   HEADER - Game Status Bar
+   ============================================================ */
+.pp-header {
+  /* Replaced rainbow gradient with solid neon cyan background and retro game arcade feel */
+  background: linear-gradient(180deg, #00d9ff 0%, #0099cc 100%);
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  border: 3px solid #0099cc;
+  border-bottom: 4px solid #006688;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 4px 0 rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 217, 255, 0.4);
+}
+
+/* Header game console icon */
+.pp-header-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+  z-index: 2;
+}
+
+/* Increased title font size from 11px to 20px for better visibility */
+.pp-title {
+  font-family: var(--pp-font-pixel);
+  font-size: 14px;
+  font-weight: 700;
+  color: #000080;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 3px 3px 0 rgba(255, 255, 0, 0.7), 2px 2px 0 rgba(0, 0, 0, 0.9);
+  margin: 0;
+  z-index: 2;
+  position: relative;
+  flex: 1;
+}
+
+.pp-close-btn {
+  background: linear-gradient(135deg, #ff6b6b, #ff1744);
+  border: 2px solid var(--pp-text-bright);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-family: var(--pp-font-pixel);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  font-weight: 700;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+}
+
+.pp-close-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 4px 4px 0 rgba(255, 0, 110, 0.6);
+  text-shadow: 0 0 8px var(--pp-text-bright);
+}
+
+.pp-close-btn:active {
+  transform: scale(0.9);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   CONTENT AREA
+   ============================================================ */
+.pp-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pp-secondary) var(--pp-bg-dark);
+}
+
+.pp-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pp-content::-webkit-scrollbar-track {
+  background: var(--pp-bg-dark);
+  border-left: 2px solid var(--pp-accent-purple);
+}
+
+.pp-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--pp-secondary), var(--pp-primary));
+  border: 1px solid var(--pp-secondary);
+  box-shadow: inset 0 0 0 1px var(--pp-accent-purple);
+}
+
+/* ============================================================
+   SECTIONS - RPG Menu with Neon Accents
+   ============================================================ */
+.pp-section {
+  margin-bottom: 12px;
+  background: var(--pp-bg-dark);
+  position: relative;
+  border: 2px solid var(--pp-border);
+  box-shadow: inset 0 0 6px rgba(0, 217, 255, 0.15);
+}
+
+.pp-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--pp-secondary), var(--pp-primary));
+  box-shadow: 0 0 8px var(--pp-primary);
+}
+
+.pp-section-header {
+  /* Updated section header with teal/dark cyan retro arcade theme instead of gradient */
+  background: linear-gradient(180deg, #004466 0%, #002244 100%);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #00d9ff;
+  border-left: 5px solid #ffff00;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+  box-shadow: inset 0 0 6px rgba(0, 217, 255, 0.2);
+  position: relative;
+}
+
+.pp-section-header:hover {
+  background: linear-gradient(180deg, #0066aa 0%, #003366 100%);
+  box-shadow: inset 0 0 12px rgba(0, 217, 255, 0.4), 0 0 8px rgba(255, 255, 0, 0.3);
+  border-left-color: #ffff00;
+  text-shadow: 0 0 8px #ffff00;
+}
+
+.pp-section-title {
+  font-family: var(--pp-font-pixel);
+  font-size: 13px;
+  font-weight: 700;
+  color: #00d9ff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8), 0 0 6px rgba(0, 217, 255, 0.4);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Section icon in title */
+.pp-section-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.7));
+  vertical-align: middle;
+}
+
+/* Section title when used directly in section (without header wrapper) */
+.pp-section > .pp-section-title {
+  background: linear-gradient(180deg, #004466 0%, #002244 100%);
+  padding: 10px 12px;
+  margin: 0;
+  border-bottom: 2px solid #00d9ff;
+  display: flex;
+}
+
+/* Section decoration (robot, etc.) */
+.pp-section-deco {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 8px;
+  right: 8px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.3;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.pp-section-placement {
+  position: relative;
+}
+
+.pp-section-toggle {
+  font-family: var(--pp-font-pixel);
+  font-size: 9px;
+  color: var(--pp-secondary);
+  transition: transform 0.2s;
+  font-weight: 700;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pp-section.collapsed .pp-section-toggle {
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+.pp-section-content {
+  padding: 6px 8px;
+}
+
+.pp-section.collapsed .pp-section-content {
+  display: none;
+}
+
+/* ============================================================
+   BUTTONS - Chunky Creative Pixel Style
+   ============================================================ */
+.pp-btn {
+  font-family: var(--pp-font-pixel);
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  transition: all 0.1s;
+  width: 100%;
+  margin-bottom: 4px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  background: linear-gradient(180deg, var(--pp-bg-highlight) 0%, var(--pp-bg-light) 50%, var(--pp-bg) 100%);
+  color: var(--pp-text-bright);
+  border: 2px solid var(--pp-border-light);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Button icon */
+.pp-btn-icon {
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+  vertical-align: middle;
+}
+
+/* Title icon (for panel headers) */
+.pp-title-icon {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 10px;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.7));
+}
+
+/* Stat box icons */
+.pp-stat-icon-img {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.4));
+  margin-bottom: 4px;
+}
+
+/* Subsection icons */
+.pp-subsection-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 10px;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.7));
+}
+
+/* Toggle label icons */
+.pp-toggle-icon {
+  width: 30px;
+  height: 30px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 10px;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.7));
+}
+
+/* Lock aspect ratio icon */
+.pp-lock-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+#pp-lock-aspect:checked + .pp-lock-icon {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
+}
+
+/* Tip icon */
+.pp-tip-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+.pp-btn::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  background: var(--pp-secondary);
+  box-shadow: -12px 0 0 var(--pp-secondary), 0 10px 0 var(--pp-secondary), -12px 10px 0 var(--pp-secondary), 0 0 6px
+    var(--pp-secondary);
+}
+
+.pp-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 4px 6px 0 rgba(0, 217, 255, 0.4);
+  color: var(--pp-secondary);
+  text-shadow: 0 0 8px var(--pp-secondary);
+}
+
+.pp-btn:hover:not(:disabled) .pp-btn-icon {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5)) brightness(1.2);
+}
+
+.pp-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.pp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--pp-text-dim);
+}
+
+/* PRIMARY BUTTON - Hot Pink Attack */
+.pp-btn-primary {
+  background: linear-gradient(135deg, var(--pp-primary) 0%, #ff3366 50%, #cc0055 100%);
+  color: var(--pp-text-bright);
+  border-color: #ff6699;
+  text-shadow: 0 0 6px rgba(255, 0, 110, 0.6);
+}
+
+.pp-btn-primary:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 12px var(--pp-primary), 4px 6px 0 rgba(255, 0, 110, 0.5);
+}
+
+/* SUCCESS BUTTON - Neon Green */
+.pp-btn-success {
+  background: linear-gradient(135deg, var(--pp-xp) 0%, #5dff00 50%, #2fcc00 100%);
+  color: #1a1c2c;
+  border-color: #76ff03;
+  font-weight: 700;
+}
+
+.pp-btn-success:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 12px var(--pp-xp), 4px 6px 0 rgba(118, 255, 3, 0.5);
+  color: #000;
+}
+
+/* DANGER BUTTON - Red Alert */
+.pp-btn-danger {
+  background: linear-gradient(135deg, #ff1744 0%, #ff5252 50%, #dd0011 100%);
+  color: var(--pp-text-bright);
+  border-color: #ff6b6b;
+}
+
+.pp-btn-danger:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 12px #ff1744, 4px 6px 0 rgba(255, 23, 68, 0.5);
+}
+
+.pp-btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.pp-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pp-btn-row .pp-btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ============================================================
+   HEALTH & MANA BARS - Pixel RPG Style
+   ============================================================ */
+.pp-progress-container {
+  height: 24px;
+  margin-bottom: 10px;
+  position: relative;
+  background: #000;
+  border: 2px solid var(--pp-border);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.pp-progress-bar {
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: repeating-linear-gradient(90deg, var(--pp-xp) 0px, var(--pp-xp) 3px, #5dff00 3px, #5dff00 6px);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px var(--pp-xp);
+}
+
+/* HP Red Variant */
+.pp-progress-container.hp .pp-progress-bar {
+  background: repeating-linear-gradient(90deg, var(--pp-hp) 0px, var(--pp-hp) 3px, #ff5252 3px, #ff5252 6px);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px var(--pp-hp);
+}
+
+/* MP Blue Variant */
+.pp-progress-container.mp .pp-progress-bar {
+  background: repeating-linear-gradient(90deg, var(--pp-mp) 0px, var(--pp-mp) 3px, #00d9ff 3px, #00d9ff 6px);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px var(--pp-mp);
+}
+
+.pp-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--pp-font-pixel);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   HEARTS HEALTH DISPLAY - 8-Bit Hearts
+   ============================================================ */
+.pp-hearts {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-hp);
+  justify-content: center;
+  flex-wrap: wrap;
+  box-shadow: 0 0 8px rgba(255, 23, 68, 0.3);
+}
+
+.pp-heart {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.1s;
+  filter: drop-shadow(0 0 2px rgba(255, 23, 68, 0.5));
+}
+
+.pp-heart:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 6px var(--pp-hp));
+}
+
+/* Pixel heart using Unicode */
+.pp-heart::before {
+  content: "❤";
+  font-size: 14px;
+  color: var(--pp-hp);
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  text-shadow: 0 0 4px rgba(255, 23, 68, 0.8);
+}
+
+.pp-heart.empty::before {
+  content: "🤍";
+  color: var(--pp-text-dim);
+  text-shadow: none;
+  opacity: 0.3;
+}
+
+/* ============================================================
+   FORM CONTROLS - Game Console Style
+   ============================================================ */
+.pp-form-group {
+  margin-bottom: 12px;
+}
+
+.pp-label {
+  display: block;
+  font-family: var(--pp-font);
+  font-size: 15px;
+  color: var(--pp-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.pp-select,
+.pp-input {
+  width: 100%;
+  font-family: var(--pp-font);
+  font-size: 14px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+
+  background: var(--pp-bg-dark);
+  color: var(--pp-text);
+  border: 2px solid var(--pp-border);
+  transition: all 0.2s;
+}
+
+.pp-select:focus,
+.pp-input:focus {
+  outline: none;
+  border-color: var(--pp-secondary);
+  box-shadow: 0 0 8px rgba(0, 217, 255, 0.4), inset 0 0 4px rgba(0, 217, 255, 0.1);
+  background: var(--pp-bg-light);
+}
+
+.pp-input::placeholder {
+  color: var(--pp-text-dim);
+}
+
+.pp-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300d9ff' d='M2 4l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+
+/* ============================================================
+   SLIDERS - Game Control Bars
+   ============================================================ */
+.pp-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-slider {
+  flex: 1;
+  height: 20px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-border);
+}
+
+.pp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--pp-primary), #ff3366);
+  border: 2px solid var(--pp-text-bright);
+  box-shadow: 0 0 6px var(--pp-primary);
+}
+
+.pp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 20px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--pp-primary), #ff3366);
+  border: 2px solid var(--pp-text-bright);
+  box-shadow: 0 0 6px var(--pp-primary);
+}
+
+.pp-slider-value {
+  min-width: 50px;
+  text-align: center;
+  font-family: var(--pp-font-pixel);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+  background: linear-gradient(135deg, var(--pp-bg-light), var(--pp-bg-dark));
+  padding: 4px 8px;
+  border: 2px solid var(--pp-primary);
+  box-shadow: 0 0 4px var(--pp-primary);
+}
+
+/* ============================================================
+   CHECKBOXES - Pixel Perfect Toggles
+   ============================================================ */
+.pp-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 2px;
+  transition: background 0.1s;
+}
+
+.pp-checkbox-group:hover {
+  background: rgba(0, 217, 255, 0.1);
+}
+
+.pp-checkbox {
+  width: 18px;
+  height: 18px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-border);
+  transition: all 0.1s;
+}
+
+.pp-checkbox:checked {
+  background: linear-gradient(135deg, var(--pp-secondary), var(--pp-primary));
+  border-color: var(--pp-text-bright);
+  box-shadow: 0 0 6px var(--pp-secondary);
+}
+
+.pp-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--pp-bg);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.pp-checkbox-label {
+  font-family: var(--pp-font);
+  font-size: 15px;
+  color: var(--pp-text);
+  font-weight: 700;
+}
+
+/* ============================================================
+   MISSION CARD - Creative Image Upload Widget
+   ============================================================ */
+.pp-mission-card {
+  background: linear-gradient(135deg, var(--pp-bg-dark) 0%, rgba(131, 56, 236, 0.1) 100%);
+  border: 2px solid var(--pp-accent-purple);
+  position: relative;
+  overflow: hidden;
+}
+
+.pp-mission-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pp-primary), var(--pp-secondary), var(--pp-accent-purple));
+}
+
+/* Empty State - Drop Zone */
+.pp-mission-empty {
+  padding: 20px 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pp-mission-empty:hover {
+  background: rgba(0, 217, 255, 0.1);
+}
+
+/* Icon image for mission card */
+.pp-mission-icon-img {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 10px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+  transition: all 0.2s;
+}
+
+.pp-mission-empty:hover .pp-mission-icon-img {
+  transform: scale(1.15) rotate(-5deg);
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.5)) brightness(1.1);
+}
+
+.pp-mission-prompt {
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  color: var(--pp-secondary);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.pp-mission-subtext {
+  font-family: var(--pp-font);
+  font-size: 11px;
+  color: var(--pp-text-dim);
+}
+
+/* Loaded State */
+.pp-mission-loaded {
+  padding: 0;
+}
+
+.pp-mission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--pp-border);
+}
+
+.pp-mission-label {
+  font-family: var(--pp-font-pixel);
+  font-size: 9px;
+  color: var(--pp-text-dim);
+  letter-spacing: 1px;
+}
+
+.pp-mission-status {
+  font-family: var(--pp-font-pixel);
+  font-size: 9px;
+  padding: 2px 8px;
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  color: var(--pp-text-dim);
+}
+
+.pp-mission-status.pp-status-loaded {
+  color: var(--pp-accent-green);
+  border-color: var(--pp-accent-green);
+  background: rgba(61, 217, 140, 0.15);
+}
+
+.pp-mission-status.pp-status-processed {
+  color: var(--pp-secondary);
+  border-color: var(--pp-secondary);
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.pp-mission-status.pp-status-ready {
+  color: var(--pp-text-bright);
+  border-color: var(--pp-text-bright);
+  background: rgba(255, 255, 0, 0.15);
+  animation: pp-pulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   UPLOAD CARD - Simplified Image Upload (stats moved to info panel)
+   ============================================================ */
+.pp-upload-card {
+  background: linear-gradient(135deg, var(--pp-bg-dark) 0%, rgba(131, 56, 236, 0.1) 100%);
+  border: 2px solid var(--pp-accent-purple);
+  position: relative;
+  overflow: hidden;
+}
+
+.pp-upload-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pp-primary), var(--pp-secondary), var(--pp-accent-purple));
+}
+
+.pp-upload-empty {
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pp-upload-empty:hover {
+  background: rgba(0, 217, 255, 0.1);
+}
+
+.pp-upload-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+  transition: all 0.2s;
+}
+
+.pp-upload-empty:hover .pp-upload-icon {
+  transform: scale(1.15) rotate(-5deg);
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.5)) brightness(1.1);
+}
+
+.pp-upload-text {
+  font-family: var(--pp-font-pixel);
+  font-size: 11px;
+  color: var(--pp-secondary);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.pp-upload-subtext {
+  font-family: var(--pp-font);
+  font-size: 10px;
+  color: var(--pp-text-dim);
+}
+
+.pp-upload-loaded {
+  padding: 10px;
+}
+
+.pp-upload-status {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.pp-status-badge {
+  font-family: var(--pp-font-pixel);
+  font-size: 10px;
+  padding: 4px 12px;
+  background: var(--pp-bg);
+  border: 2px solid var(--pp-border);
+  color: var(--pp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pp-status-badge.pp-status-loaded {
+  color: var(--pp-accent-green);
+  border-color: var(--pp-accent-green);
+  background: rgba(61, 217, 140, 0.15);
+}
+
+.pp-status-badge.pp-status-processed {
+  color: var(--pp-secondary);
+  border-color: var(--pp-secondary);
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.pp-status-badge.pp-status-ready {
+  color: var(--pp-text-bright);
+  border-color: var(--pp-text-bright);
+  background: rgba(255, 255, 0, 0.15);
+  animation: pp-pulse 1.5s ease-in-out infinite;
+}
+
+.pp-upload-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pp-upload-actions .pp-btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Stats Grid */
+.pp-mission-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--pp-border);
+  margin: 0;
+}
+
+.pp-stat-box {
+  background: var(--pp-bg-dark);
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.pp-stat-icon {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.pp-stat-value {
+  font-family: var(--pp-font-pixel);
+  font-size: 11px;
+  color: var(--pp-text-bright);
+  margin-bottom: 2px;
+}
+
+.pp-stat-label {
+  font-family: var(--pp-font);
+  font-size: 9px;
+  color: var(--pp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Mini Preview */
+.pp-mission-mini-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background: #000;
+  border-top: 1px solid var(--pp-border);
+  border-bottom: 1px solid var(--pp-border);
+  
+  /* Checkerboard for transparency */
+  background-image: 
+    linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
+    linear-gradient(-45deg, #1a1a2e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
+    linear-gradient(-45deg, transparent 75%, #1a1a2e 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  background-color: #0a0e27;
+}
+
+.pp-mini-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid var(--pp-border);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+/* Action Buttons */
+.pp-mission-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.pp-mission-actions .pp-btn {
+  margin: 0;
+  border-radius: 0;
+  font-size: 11px;
+  padding: 8px 6px;
+}
+
+.pp-mission-actions .pp-btn:first-child {
+  border-right: 1px solid var(--pp-border);
+}
+
+/* ============================================================
+   STATUS BAR - Game Status Display
+   ============================================================ */
+.pp-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(90deg, var(--pp-bg-dark), var(--pp-bg-light));
+  padding: 10px 12px;
+  font-family: var(--pp-font);
+  font-size: 12px;
+  color: var(--pp-text-dim);
+  text-align: center;
+  border-top: 2px solid var(--pp-border);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+/* Monster icon for status bar */
+.pp-status-icon {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+  filter: grayscale(0.5) opacity(0.7);
+  transition: all 0.3s;
+}
+
+.pp-status.success .pp-status-icon {
+  filter: grayscale(0) hue-rotate(90deg) brightness(1.3);
+}
+
+.pp-status.warning .pp-status-icon {
+  filter: grayscale(0) hue-rotate(45deg) brightness(1.2);
+}
+
+.pp-status.error .pp-status-icon {
+  filter: grayscale(0) hue-rotate(-30deg) brightness(1.2);
+  animation: pp-monster-shake 0.3s ease-in-out;
+}
+
+@keyframes pp-monster-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px) rotate(-5deg); }
+  75% { transform: translateX(3px) rotate(5deg); }
+}
+
+.pp-status.success {
+  color: var(--pp-xp);
+  background: rgba(61, 217, 140, 0.15);
+  border-color: var(--pp-xp);
+}
+
+.pp-status.warning {
+  color: var(--pp-text-bright);
+  background: rgba(255, 255, 0, 0.1);
+  border-color: var(--pp-text-bright);
+}
+
+.pp-status.error {
+  color: var(--pp-hp);
+  background: rgba(255, 23, 68, 0.15);
+  border-color: var(--pp-hp);
+}
+
+/* ============================================================
+   CHARGES/POINTS DISPLAY - Game Resources
+   ============================================================ */
+.pp-charges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 4px;
+
+  background: linear-gradient(135deg, rgba(131, 56, 236, 0.2), rgba(255, 0, 110, 0.1));
+  border: 2px solid var(--pp-accent-purple);
+  box-shadow: 0 0 8px rgba(131, 56, 236, 0.3);
+}
+
+.pp-charges-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 0 4px rgba(131, 56, 236, 0.6));
+}
+
+/* Star icon image for charges */
+.pp-charges-icon-img {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(131, 56, 236, 0.8));
+  animation: pp-star-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pp-star-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(131, 56, 236, 0.8)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 10px rgba(131, 56, 236, 1)); }
+}
+
+.pp-charges-value {
+  font-family: var(--pp-font-pixel);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+  text-shadow: 0 0 6px var(--pp-accent-purple);
+}
+
+/* ============================================================
+   TABS - Game Menu Navigation
+   ============================================================ */
+.pp-tabs {
+  display: flex;
+  margin-bottom: 10px;
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-border);
+  gap: 1px;
+  padding: 1px;
+}
+
+.pp-tab {
+  flex: 1;
+  padding: 8px 6px;
+  font-family: var(--pp-font-pixel);
+  font-size: 14px;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+
+  background: var(--pp-bg-dark);
+  color: var(--pp-text-dim);
+  border: none;
+  letter-spacing: 0.5px;
+}
+
+.pp-tab:hover {
+  background: var(--pp-bg-light);
+  color: var(--pp-secondary);
+}
+
+.pp-tab.active {
+  background: linear-gradient(135deg, var(--pp-primary), var(--pp-accent-purple));
+  color: var(--pp-text-bright);
+  box-shadow: 0 0 8px var(--pp-primary);
+}
+
+.pp-tab-content {
+  display: none;
+}
+
+.pp-tab-content.active {
+  display: block;
+}
+
+/* ============================================================
+   INFO DISPLAYS - Game Stats
+   ============================================================ */
+.pp-info {
+  font-family: var(--pp-font);
+  font-size: 13px;
+  color: var(--pp-text);
+}
+
+.pp-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--pp-border);
+}
+
+.pp-info-row:last-child {
+  border-bottom: none;
+}
+
+.pp-info-label {
+  color: var(--pp-text-dim);
+}
+
+.pp-info-value {
+  color: var(--pp-text-bright);
+  font-weight: 700;
+}
+
+/* ============================================================
+   ANCHOR/POSITION DISPLAY - Tile & Pixel Coords
+   ============================================================ */
+.pp-anchor-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pp-anchor-item {
+  text-align: center;
+  padding: 10px 8px;
+  background: linear-gradient(135deg, var(--pp-bg-dark), rgba(131, 56, 236, 0.1));
+  border: 2px solid var(--pp-accent-purple);
+  box-shadow: 0 0 6px rgba(131, 56, 236, 0.2), inset 0 0 4px rgba(0, 217, 255, 0.1);
+}
+
+.pp-anchor-label {
+  font-family: var(--pp-font-pixel);
+  font-size: 11px;
+  color: var(--pp-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pp-anchor-value {
+  font-family: var(--pp-font-pixel);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+  text-shadow: 0 0 6px var(--pp-primary);
+}
+
+/* ============================================================
+   PROCESSING PANEL OVERLAY - Large Modal
+   ============================================================ */
+.pp-resize-overlay,
+.pp-processing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 8, 18, 0.95);
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.pp-resize-container,
+.pp-resize-panel {
+  background: var(--pp-bg);
+  width: 900px;
+  max-width: 90vw;
+  height: 75vh;
+  max-height: 750px;
+  display: flex;
+  flex-direction: column;
+  color: var(--pp-text);
+  font-family: var(--pp-font);
+  font-size: 14px;
+  
+  border: 3px solid var(--pp-accent-purple);
+  box-shadow: 
+    0 0 0 2px var(--pp-primary),
+    0 0 30px rgba(255, 0, 110, 0.3),
+    0 0 60px rgba(131, 56, 236, 0.2);
+}
+
+.pp-resize-header {
+  background: linear-gradient(180deg, #00d9ff 0%, #0099cc 100%);
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 4px solid #006688;
+  flex-shrink: 0;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pp-resize-title {
+  font-family: var(--pp-font-pixel);
+  font-size: 14px;
+  color: #000080;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 rgba(255, 255, 0, 0.5);
+}
+
+.pp-resize-close {
+  background: linear-gradient(135deg, #ff6b6b, #ff1744);
+  border: 2px solid var(--pp-text-bright);
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.pp-resize-close:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 12px #ff1744;
+}
+
+/* Two-Column Layout */
+.pp-resize-two-column {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pp-resize-config-column {
+  width: 420px;
+  min-width: 360px;
+  flex-shrink: 0;
+  border-right: 3px solid var(--pp-border);
+  display: flex;
+  flex-direction: column;
+  background: var(--pp-bg-dark);
+}
+
+.pp-resize-config-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pp-secondary) var(--pp-bg-dark);
+}
+
+.pp-resize-config-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pp-resize-config-scroll::-webkit-scrollbar-track {
+  background: var(--pp-bg-dark);
+}
+
+.pp-resize-config-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--pp-secondary), var(--pp-primary));
+  border: 2px solid var(--pp-bg-dark);
+}
+
+.pp-resize-preview-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #050812;
+  min-width: 400px;
+}
+
+/* Preview Zoom Controls */
+.pp-preview-zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--pp-bg-dark);
+  border-bottom: 3px solid var(--pp-border);
+  flex-shrink: 0;
+}
+
+.pp-zoom-btn {
+  font-family: var(--pp-font-pixel);
+  font-size: 14px;
+  padding: 6px 14px;
+  cursor: pointer;
+  background: var(--pp-bg-light);
+  color: var(--pp-text);
+  border: 2px solid var(--pp-border-light);
+  transition: all 0.1s;
+}
+
+.pp-zoom-btn:hover {
+  background: var(--pp-bg-highlight);
+  color: var(--pp-secondary);
+  box-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
+}
+
+#pp-zoom-level {
+  font-family: var(--pp-font-pixel);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pp-text-bright);
+  min-width: 70px;
+  text-align: center;
+}
+
+/* Preview Wrapper */
+.pp-preview-wrapper {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  position: relative;
+  
+  /* Checkerboard background for transparency */
+  background-image: 
+    linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
+    linear-gradient(-45deg, #1a1a2e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
+    linear-gradient(-45deg, transparent 75%, #1a1a2e 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #0a0e27;
+}
+
+.pp-canvas-stack {
+  transform-origin: center center;
+  transition: transform 0.1s ease;
+}
+
+.pp-preview-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 3px solid var(--pp-border);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+}
+
+/* Preview Info Bar */
+.pp-preview-info {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 10px 16px;
+  background: var(--pp-bg-dark);
+  border-top: 3px solid var(--pp-border);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.pp-preview-info span {
+  color: var(--pp-text-dim);
+}
+
+.pp-preview-info strong {
+  color: var(--pp-text-bright);
+  font-weight: 700;
+}
+
+.pp-preview-help {
+  text-align: center;
+  padding: 8px;
+  font-size: 11px;
+  color: var(--pp-text-dim);
+  background: var(--pp-bg-dark);
+  border-top: 1px solid var(--pp-border);
+}
+
+/* Footer with Apply/Cancel */
+.pp-resize-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--pp-bg-dark);
+  border-top: 3px solid var(--pp-border);
+  flex-shrink: 0;
+}
+
+.pp-resize-footer .pp-btn {
+  padding: 12px 28px;
+  font-size: 14px;
+  min-width: 120px;
+  width: auto;
+}
+
+/* ============================================================
+   SUBSECTIONS - Config Groups
+   ============================================================ */
+.pp-subsection {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 2px dashed var(--pp-border);
+}
+
+.pp-subsection:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.pp-subsection-header {
+  margin-bottom: 10px;
+}
+
+.pp-subsection-title {
+  font-family: var(--pp-font);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pp-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pp-description {
+  font-size: 12px;
+  color: var(--pp-text-dim);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.pp-control-row {
+  margin-bottom: 12px;
+}
+
+.pp-control-row:last-child {
+  margin-bottom: 0;
+}
+
+.pp-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pp-border);
+}
+
+.pp-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.pp-toggle-content {
+  flex: 1;
+}
+
+.pp-toggle-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pp-text);
+}
+
+/* Slider Controls */
+.pp-slider-control {
+  margin-bottom: 14px;
+}
+
+.pp-slider-control:last-child {
+  margin-bottom: 0;
+}
+
+.pp-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+/* Size Inputs */
+.pp-size-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pp-size-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pp-size-group label {
+  font-size: 11px;
+  color: var(--pp-text-dim);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.pp-size-separator {
+  color: var(--pp-text-dim);
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 18px;
+}
+
+/* Info Box */
+.pp-info-box {
+  background: rgba(0, 217, 255, 0.1);
+  padding: 12px;
+  border-left: 4px solid var(--pp-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pp-text-dim);
+  margin-top: 12px;
+}
+
+.pp-info-box strong {
+  color: var(--pp-text);
+}
+
+/* Resize Inputs */
+.pp-resize-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pp-resize-field {
+  flex: 1;
+}
+
+.pp-resize-field input {
+  width: 100%;
+  text-align: center;
+}
+
+.pp-resize-x {
+  color: var(--pp-text-dim);
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* ============================================================
+   WORKFLOW STEPS
+   ============================================================ */
+.pp-workflow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: var(--pp-bg-dark);
+  border: 2px solid var(--pp-border);
+}
+
+.pp-workflow-step {
+  text-align: center;
+  flex: 1;
+  position: relative;
+}
+
+.pp-workflow-step::after {
+  content: '►';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pp-text-dim);
+  font-size: 10px;
+}
+
+.pp-workflow-step:last-child::after {
+  display: none;
+}
+
+.pp-workflow-num {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--pp-bg);
+  color: var(--pp-text-dim);
+  border: 2px solid var(--pp-border);
+}
+
+.pp-workflow-step.active .pp-workflow-num {
+  background: linear-gradient(135deg, var(--pp-primary), var(--pp-accent-purple));
+  color: var(--pp-text-bright);
+  border-color: var(--pp-primary);
+  box-shadow: 0 0 8px var(--pp-primary);
+}
+
+.pp-workflow-step.done .pp-workflow-num {
+  background: var(--pp-accent-green);
+  color: #000;
+  border-color: var(--pp-accent-green);
+  box-shadow: 0 0 8px var(--pp-accent-green);
+}
+
+.pp-workflow-label {
+  font-family: var(--pp-font);
+  font-size: 10px;
+  color: var(--pp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pp-workflow-step.active .pp-workflow-label {
+  color: var(--pp-primary);
+}
+
+.pp-workflow-step.done .pp-workflow-label {
+  color: var(--pp-accent-green);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes pp-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.pp-blink {
+  animation: pp-blink 1s step-start infinite;
+}
+
+@keyframes pp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pp-pulse {
+  animation: pp-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pp-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px var(--pp-secondary);
+  }
+  50% { 
+    box-shadow: 0 0 15px var(--pp-secondary), 0 0 25px var(--pp-primary);
+  }
+}
+
+.pp-glow {
+  animation: pp-glow 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+.pp-hidden {
+  display: none !important;
+}
+
+.pp-text-center {
+  text-align: center;
+}
+
+.pp-text-gold,
+.pp-text-yellow {
+  color: var(--pp-text-bright);
+}
+
+.pp-text-blue,
+.pp-text-cyan {
+  color: var(--pp-secondary);
+}
+
+.pp-text-pink {
+  color: var(--pp-primary);
+}
+
+.pp-text-success {
+  color: var(--pp-accent-green);
+}
+
+.pp-text-error {
+  color: var(--pp-hp);
+}
+
+.pp-mt-10 {
+  margin-top: 10px;
+}
+
+.pp-mb-10 {
+  margin-bottom: 10px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-height: 700px) {
+  #patplacer-panel {
+    max-height: 85vh;
+  }
+  
+  .pp-preview-image {
+    max-height: 100px;
+  }
+}
+
+@media (max-width: 1300px) {
+  .pp-resize-container,
+  .pp-resize-panel {
+    width: 95vw;
+  }
+  
+  .pp-resize-config-column {
+    width: 350px;
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pp-resize-two-column {
+    flex-direction: column;
+  }
+  
+  .pp-resize-config-column {
+    width: 100%;
+    height: 40%;
+    border-right: none;
+    border-bottom: 3px solid var(--pp-border);
+  }
+  
+  .pp-resize-preview-column {
+    min-width: unset;
+    height: 60%;
+  }
+}

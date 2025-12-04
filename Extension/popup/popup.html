@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PatPlacer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="4" height="16" rx="1" fill="#667eea"/>
+          <rect x="8" y="4" width="8" height="4" rx="1" fill="#764ba2"/>
+          <rect x="12" y="8" width="4" height="4" rx="1" fill="#667eea"/>
+          <rect x="8" y="8" width="4" height="4" rx="1" fill="#764ba2"/>
+        </svg>
+      </div>
+      <div class="title">
+        <h1>PatPlacer</h1>
+        <span class="version">v1.0.0</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <p class="description">
+        Place pixel draft templates on WPlace. Upload an image, set your anchor point, and place all pixels as drafts.
+      </p>
+
+      <div class="status" id="status">
+        <span class="status-indicator inactive"></span>
+        <span class="status-text">Not on wplace.live</span>
+      </div>
+
+      <div class="instructions">
+        <h3>How to use:</h3>
+        <ol>
+          <li>Go to <a href="https://wplace.live" target="_blank">wplace.live</a></li>
+          <li>Click the <strong>P</strong> button in the toolbar</li>
+          <li>Upload your template image</li>
+          <li>Navigate to desired location</li>
+          <li>Place first draft pixel as anchor</li>
+          <li>Click "Place All Drafts"</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="https://github.com" target="_blank" class="link">GitHub</a>
+      <span class="separator">•</span>
+      <span class="credit">Made for WPlace</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
