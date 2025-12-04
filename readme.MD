@@ -9,7 +9,6 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Chrome-00d9ff?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/pixels-∞-ff006e?style=flat-square" alt="Pixels">
 </p>
 
