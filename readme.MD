@@ -18,7 +18,7 @@
 
 ## ⚔️ What is PatPlacer?
 
-PatPlacer is a Chrome extension designed for artists and communities who want to place pixel art on [wplace.live](https://wplace.live) with surgical precision. Whether you're defending territory, collaborating on massive murals, or just want your art placed *exactly* where you want it—PatPlacer has your back.
+PatPlacer is a Browser extension designed for artists and communities who want to place pixel art on [wplace.live](https://wplace.live) with surgical precision. Whether you're defending territory, collaborating on massive murals, or just want your art placed *exactly* where you want it—PatPlacer has your back.
 
 **This is not a bot.** PatPlacer is a template overlay and batch drafting tool that helps you visualize and queue pixel placements efficiently.
 
