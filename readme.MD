@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Extension/icons/dragon.png" alt="PatPlacer Dragon" width="80" height="80" style="image-rendering: pixelated;">
+  <img src="Extension/icons/dragon.png" alt="PatPlacer Dragon" width="120" height="120" style="image-rendering: pixelated;">
 </p>
 
 <h1 align="center">🎮 PatPlacer</h1>
@@ -121,9 +121,9 @@ Apache License 2.0 — See [LICENSE](LICENSE) for details.
 </p>
 
 <p align="center">
-  <img src="Extension/icons/wizard.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/alien.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/girl.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/robot.png" width="32" style="image-rendering: pixelated;">
-  <img src="Extension/icons/monster.png" width="32" style="image-rendering: pixelated;">
+  <img src="Extension/icons/wizard.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/alien.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/girl.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/robot.png" width="62" style="image-rendering: pixelated;">
+  <img src="Extension/icons/monster.png" width="62" style="image-rendering: pixelated;">
 </p>
