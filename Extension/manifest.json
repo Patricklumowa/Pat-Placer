@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "PatPlacer - WPlace Pixel Placer",
+  "version": "1.0.0",
+  "description": "Place pixel drafts on WPlace at exact tile/pixel coordinates",
+  "permissions": [
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://wplace.live/*",
+    "https://*.wplace.live/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "PatPlacer"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://wplace.live/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "scripts/*.js",
+        "styles/*.css",
+        "icons/*"
+      ],
+      "matches": ["https://wplace.live/*"]
+    }
+  ]
+}
