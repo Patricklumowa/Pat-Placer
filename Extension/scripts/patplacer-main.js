@@ -2,7 +2,7 @@
  * PatPlacer - Main Script
  * Runs in page MAIN world context
  * Handles: UI panel, image upload, image processing, draft capture, template overlay, draft placement
- * 
+ *  
  * WORKFLOW: Upload Image → Process (resize, dither, color match) → Apply → Set Anchor → Place Drafts
  */
 
@@ -4393,3 +4393,4 @@
   init();
 
 })();
+
