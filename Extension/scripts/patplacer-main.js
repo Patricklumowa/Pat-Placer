@@ -307,6 +307,9 @@
     anchorTile: null,    // {x, y} - tile coordinates
     anchorPixel: null,   // {x, y} - pixel within tile
     
+    // Saved anchor - original position from save file (for arrow guide)
+    savedAnchor: null,   // {tile: {x,y}, pixel: {x,y}} - original anchor from loaded save
+    
     // Overlay - Template overlay (shows full image before drafts)
     templateOverlayEnabled: false,
     templateOverlayOpacity: CONFIG.DEFAULT_OPACITY,
@@ -322,12 +325,18 @@
     // Draft placement - BATCH SYSTEM
     allPixels: [],           // All pixels from template
     placedPixels: [],        // Pixels placed in current batch (for overlay)
-    currentBatchIndex: 0,    // How many pixels already placed total
+    currentBatchIndex: 0,    // How many pixels already confirmed total
+    pendingBatchCount: 0,    // Pixels in current batch awaiting confirmation
+    pendingSkippedCount: 0,  // Skipped pixels in current batch (for progress display)
     isPlacing: false,
     
     // Charges
     currentCharges: 0,
     maxCharges: 0,
+    
+    // Color Palette
+    colorsCaptured: false,   // Whether user's available colors have been captured
+    availableColors: [],     // Array of available colors from wplace palette
     
     // Options (hardcoded)
     skipWhite: false,        // Never skip white pixels
@@ -336,7 +345,11 @@
     // Draft listener
     draftListenerActive: false,
     originalMapSet: null,
-    pixelDraftMap: null  // Reference to wplace's pixel draft Map
+    pixelDraftMap: null,  // Reference to wplace's pixel draft Map
+    
+    // Original tile data cache for skip-correct-pixels feature
+    // Key: "tileX,tileY", Value: ImageData object
+    originalTilesData: new Map()
   };
 
   // ============================================================
@@ -551,6 +564,125 @@
   }
 
   // ============================================================
+  // AVAILABLE COLORS EXTRACTION (from wplace palette dialog)
+  // ============================================================
+  function extractAvailableColors() {
+    // Look for wplace color palette buttons
+    // They appear in a tooltip/dialog when user clicks the paint button
+    const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
+    
+    if (colorElements.length === 0) {
+      console.log('[PatPlacer] No color elements found in palette');
+      return null;
+    }
+    
+    const availableColors = [];
+    const unavailableColors = [];
+    
+    Array.from(colorElements).forEach((el) => {
+      const id = parseInt(el.id.replace('color-', ''), 10);
+      if (id === 0) return; // Skip transparent color
+      
+      const rgbStr = el.style.backgroundColor.match(/\d+/g);
+      if (!rgbStr || rgbStr.length < 3) return;
+      
+      const r = parseInt(rgbStr[0]);
+      const g = parseInt(rgbStr[1]);
+      const b = parseInt(rgbStr[2]);
+      
+      const colorData = {
+        id,
+        r, g, b,
+        hex: rgbToHex(r, g, b),
+        rgb: [r, g, b]
+      };
+      
+      // Check if color is available (no SVG overlay means available)
+      if (!el.querySelector('svg')) {
+        availableColors.push(colorData);
+      } else {
+        unavailableColors.push(colorData);
+      }
+    });
+    
+    console.log(`[PatPlacer] Captured colors: ${availableColors.length} available, ${unavailableColors.length} locked`);
+    
+    return availableColors.length > 0 ? availableColors : null;
+  }
+  
+  function onColorsCaptured(colors) {
+    state.availableColors = colors;
+    state.colorsCaptured = true;
+    
+    // Update CONFIG.COLOR_PALETTE to only include available colors
+    CONFIG.COLOR_PALETTE = colors.map(c => ({
+      id: c.id,
+      r: c.r,
+      g: c.g,
+      b: c.b,
+      hex: c.hex
+    }));
+    
+    // Update info panel palette status
+    const paletteText = document.getElementById('patplacer-palette-text');
+    if (paletteText) {
+      paletteText.textContent = `${colors.length} COLORS`;
+      paletteText.classList.remove('pp-pulse');
+      paletteText.classList.add('pp-captured');
+    }
+    
+    // Display color swatches in the info panel
+    const swatchContainer = document.getElementById('patplacer-color-swatches');
+    if (swatchContainer) {
+      swatchContainer.innerHTML = '';
+      colors.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.className = 'pp-color-swatch';
+        swatch.style.backgroundColor = color.hex;
+        swatch.title = `#${color.hex.replace('#', '').toUpperCase()}`;
+        swatchContainer.appendChild(swatch);
+      });
+    }
+    
+    updateStatus(`✓ Captured ${colors.length} available colors`);
+    console.log('[PatPlacer] Colors captured successfully:', colors.length);
+  }
+  
+  function setupColorPaletteObserver() {
+    // Watch for tooltip/dialog appearing with color buttons
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+          
+          // Check if this is a tooltip or contains color buttons
+          const colorButtons = node.querySelectorAll ? 
+            node.querySelectorAll('button[id^="color-"]') : [];
+          
+          if (colorButtons.length > 0) {
+            console.log('[PatPlacer] Color palette detected!');
+            // Small delay to ensure all colors are rendered
+            setTimeout(() => {
+              const colors = extractAvailableColors();
+              if (colors && colors.length > 0) {
+                onColorsCaptured(colors);
+              }
+            }, 100);
+          }
+        }
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    console.log('[PatPlacer] Color palette observer active');
+    return observer;
+  }
+
+  // ============================================================
   // COLOR UTILITIES
   // ============================================================
   function rgbToHex(r, g, b) {
@@ -596,6 +728,95 @@
 
   function isTransparentPixel(a) {
     return a < 128;
+  }
+
+  /**
+   * Get the color of a pixel on the canvas from cached tile data
+   * @param {number} tileX - Tile X coordinate
+   * @param {number} tileY - Tile Y coordinate
+   * @param {number} pixelX - Pixel X within tile (0-63)
+   * @param {number} pixelY - Pixel Y within tile (0-63)
+   * @returns {[number, number, number, number] | null} - [r, g, b, a] or null if tile not cached
+   */
+  function getTilePixelColor(tileX, tileY, pixelX, pixelY) {
+    const tileKey = `${tileX},${tileY}`;
+    const imageData = state.originalTilesData.get(tileKey);
+    
+    if (!imageData) {
+      return null; // Tile not cached
+    }
+    
+    // Calculate pixel index in ImageData
+    const idx = (pixelY * imageData.width + pixelX) * 4;
+    const r = imageData.data[idx];
+    const g = imageData.data[idx + 1];
+    const b = imageData.data[idx + 2];
+    const a = imageData.data[idx + 3];
+    
+    return [r, g, b, a];
+  }
+  
+  /**
+   * Map RGB color to wplace palette ID
+   * Uses exact match first, then falls back to closest color
+   * @param {number} r - Red (0-255)
+   * @param {number} g - Green (0-255)
+   * @param {number} b - Blue (0-255)
+   * @returns {number | null} - Palette ID (1-63) or null if not found
+   */
+  function resolveColorToId(r, g, b) {
+    // First try exact match (faster)
+    for (const color of CONFIG.COLOR_PALETTE) {
+      if (color.r === r && color.g === g && color.b === b) {
+        return color.id;
+      }
+    }
+    
+    // Fall back to closest color
+    const closest = findClosestColor(r, g, b);
+    return closest ? closest.id : null;
+  }
+  
+  /**
+   * Check if a pixel at the given position already has the correct color on the canvas
+   * @param {Object} pixel - Pixel object with x, y, colorIdx
+   * @returns {boolean} - true if pixel should be skipped (already correct)
+   */
+  function isPixelAlreadyCorrect(pixel) {
+    // Calculate absolute position
+    const absPixelX = state.anchorPixel.x + pixel.x;
+    const absPixelY = state.anchorPixel.y + pixel.y;
+
+    // Calculate tile and pixel within tile
+    const tileOffsetX = Math.floor(absPixelX / CONFIG.TILE_SIZE);
+    const tileOffsetY = Math.floor(absPixelY / CONFIG.TILE_SIZE);
+    
+    const tileX = state.anchorTile.x + tileOffsetX;
+    const tileY = state.anchorTile.y + tileOffsetY;
+    
+    const pixelInTileX = ((absPixelX % CONFIG.TILE_SIZE) + CONFIG.TILE_SIZE) % CONFIG.TILE_SIZE;
+    const pixelInTileY = ((absPixelY % CONFIG.TILE_SIZE) + CONFIG.TILE_SIZE) % CONFIG.TILE_SIZE;
+    
+    // Get canvas color at this position
+    const canvasColor = getTilePixelColor(tileX, tileY, pixelInTileX, pixelInTileY);
+    
+    if (!canvasColor) {
+      // Tile not cached yet - can't determine, place the pixel to be safe
+      return false;
+    }
+    
+    const [r, g, b, a] = canvasColor;
+    
+    // If canvas pixel is transparent, it's not correct (we want to place a color)
+    if (a < 128) {
+      return false;
+    }
+    
+    // Resolve canvas color to palette ID
+    const canvasColorId = resolveColorToId(r, g, b);
+    
+    // Compare with target color ID
+    return canvasColorId === pixel.colorIdx;
   }
 
   // ============================================================
@@ -661,24 +882,37 @@
     },
 
     // Deserialize Hybrid JSON to state
-    deserializeState(data) {
+    async deserializeState(data) {
       if (!data || !data.pixels) {
         throw new Error('Invalid save file format');
       }
 
-      // Restore anchor if present
+      // Restore anchor if present - also store as savedAnchor for arrow guide
       if (data.project && data.project.anchor) {
-        state.anchorSet = true;
-        state.anchorTile = data.project.anchor.tile;
-        state.anchorPixel = data.project.anchor.pixel;
+        // Store the original anchor position for the arrow guide
+        state.savedAnchor = {
+          tile: { ...data.project.anchor.tile },
+          pixel: { ...data.project.anchor.pixel }
+        };
+        
+        // Don't auto-restore anchor - let user re-capture it
+        // But show UI that we have a saved anchor position
+        state.anchorSet = false;
+        state.anchorTile = null;
+        state.anchorPixel = null;
         
         const tileEl = document.getElementById('patplacer-tile-pos');
         const pixelEl = document.getElementById('patplacer-pixel-pos');
-        if (tileEl) tileEl.textContent = `${state.anchorTile.x}, ${state.anchorTile.y}`;
-        if (pixelEl) pixelEl.textContent = `${state.anchorPixel.x}, ${state.anchorPixel.y}`;
+        if (tileEl) tileEl.textContent = '(not set)';
+        if (pixelEl) pixelEl.textContent = '(not set)';
         
         const capBtn = document.getElementById('patplacer-capture-btn');
-        if (capBtn) capBtn.innerHTML = `<img src="${CONFIG.ICON_BASE}location.png" class="pp-btn-icon" alt=""> Re-Capture Anchor`;
+        if (capBtn) capBtn.innerHTML = `<img src="${CONFIG.ICON_BASE}location.png" class="pp-btn-icon" alt=""> Capture Anchor`;
+        
+        // Show the arrow guide to saved anchor position
+        showSavedAnchorArrow();
+      } else {
+        state.savedAnchor = null;
       }
 
       // Restore pixels
@@ -736,23 +970,26 @@
       if (infoEl) infoEl.style.display = 'block';
       
       updateBatchUI();
-      updateStatus(`Loaded project "${data.project.name}" with ${state.allPixels.length} pixels`);
       
-      // Reconstruct and show preview from loaded pixels
+      // Update status with anchor guidance if we have a saved anchor
+      if (state.savedAnchor) {
+        const { tile, pixel } = state.savedAnchor;
+        updateStatus(`Loaded "${data.project.name}" - Place anchor at tile (${tile.x}, ${tile.y}), pixel (${pixel.x}, ${pixel.y})`);
+      } else {
+        updateStatus(`Loaded project "${data.project.name}" with ${state.allPixels.length} pixels`);
+      }
+      
+      // Reconstruct preview and imageBitmap from loaded pixels (async)
       if (state.allPixels.length > 0) {
-        this.reconstructPreview();
+        await this.reconstructPreview();
       }
       
-      // If we have pixels and anchor, we can enable overlay
-      if (state.anchorSet && state.allPixels.length > 0) {
-        state.imageLoaded = true; // Fake it
-        processPlacedPixelsIntoChunks();
-        if (state.templateOverlayEnabled || state.draftOverlayEnabled) refreshOverlay();
-      }
+      // Note: We don't auto-enable overlay since anchor is not set yet
+      // User needs to capture anchor first
     },
     
     // Reconstruct preview image from loaded pixels
-    reconstructPreview() {
+    async reconstructPreview() {
       if (state.allPixels.length === 0) return;
       
       // Find dimensions from pixel coordinates
@@ -783,6 +1020,15 @@
         imageData.data[idx + 3] = 255;
       }
       ctx.putImageData(imageData, 0, 0);
+      
+      // IMPORTANT: Create imageBitmap for template overlay functionality
+      try {
+        state.imageBitmap = await createImageBitmap(canvas);
+        state.imageLoaded = true;
+        console.log(`[PatPlacer] Reconstructed imageBitmap: ${width}x${height}`);
+      } catch (e) {
+        console.warn('[PatPlacer] Failed to create imageBitmap from reconstructed image:', e);
+      }
       
       // Update preview canvas in info panel
       const previewCanvas = document.getElementById('patplacer-preview-canvas');
@@ -838,12 +1084,12 @@
     },
 
     // Load from local storage
-    loadFromLocal() {
+    async loadFromLocal() {
       try {
         const json = localStorage.getItem('patplacer_autosave');
         if (json) {
           const data = JSON.parse(json);
-          this.deserializeState(data);
+          await this.deserializeState(data);
           return true;
         }
       } catch (e) {
@@ -883,10 +1129,10 @@
     // Import from file
     importFromFile(file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = JSON.parse(e.target.result);
-          this.deserializeState(data);
+          await this.deserializeState(data);
         } catch (err) {
           console.error('[PatPlacer] Import failed:', err);
           updateStatus('Error importing file: Invalid format');
@@ -964,6 +1210,15 @@
           </div>
         </div>
         
+        <!-- Palette Status Section -->
+        <div class="pp-info-palette-status" id="patplacer-palette-status">
+          <div class="pp-palette-status-row">
+            <img src="${iconBase}palette.png" class="pp-info-stat-icon" alt="">
+            <span class="pp-palette-status-text pp-pulse" id="patplacer-palette-text">WAITING...</span>
+          </div>
+          <div class="pp-color-swatches" id="patplacer-color-swatches"></div>
+        </div>
+        
         <!-- Progress Section -->
         <div class="pp-info-progress" id="patplacer-info-progress">
           <div class="pp-info-progress-header">
@@ -1002,7 +1257,7 @@
           <div id="patplacer-autosave-row" style="display: none; margin-top: 6px;">
             <div class="pp-btn-row">
               <button class="pp-btn pp-btn-small pp-btn-warning" id="patplacer-restore-btn"><img src="${iconBase}potion.png" class="pp-btn-icon" alt=""> Restore</button>
-              <button class="pp-btn pp-btn-small pp-btn-danger" id="patplacer-clear-save-btn"><img src="${iconBase}trash.png" class="pp-btn-icon" alt=""></button>
+              <button class="pp-btn pp-btn-small pp-btn-danger" id="patplacer-clear-save-btn"><img src="${iconBase}trash.png" class="pp-btn-icon" alt=""> Delete</button>
             </div>
           </div>
         </div>
@@ -1030,7 +1285,7 @@
                 <span class="pp-status-badge" id="patplacer-image-status">LOADED</span>
               </div>
               <div class="pp-upload-actions">
-                <button class="pp-btn pp-btn-small" id="patplacer-change-image"><img src="${iconBase}folder.png" class="pp-btn-icon" alt=""> Change</button>
+                <button class="pp-btn pp-btn-small" id="patplacer-change-image"><img src="${iconBase}gear.png" class="pp-btn-icon" alt=""> Change</button>
                 <button class="pp-btn pp-btn-small pp-btn-primary" id="patplacer-process-btn"><img src="${iconBase}gear-pixel.png" class="pp-btn-icon" alt=""> Process</button>
               </div>
             </div>
@@ -1052,7 +1307,10 @@
               <div class="pp-anchor-value" id="patplacer-pixel-pos">--</div>
             </div>
           </div>
-          <button class="pp-btn" id="patplacer-capture-btn"><img src="${iconBase}location.png" class="pp-btn-icon" alt=""> Set Anchor</button>
+          <div class="pp-anchor-buttons">
+            <button class="pp-btn" id="patplacer-capture-btn"><img src="${iconBase}location.png" class="pp-btn-icon" alt=""> Set Anchor</button>
+            <button class="pp-btn" id="patplacer-move-btn" style="display: none;" title="Move Artwork (WASD)"><img src="${iconBase}location.png" class="pp-btn-icon" alt=""> Move</button>
+          </div>
           <div class="pp-info pp-blink" id="patplacer-capture-hint" style="display: none; margin-top: 6px; text-align: center;">
             Draw a pixel on the map...
           </div>
@@ -1096,8 +1354,8 @@
     panel.querySelector('#patplacer-import-input').addEventListener('change', (e) => {
       if (e.target.files.length > 0) PatPlacerStorage.importFromFile(e.target.files[0]);
     });
-    panel.querySelector('#patplacer-restore-btn').addEventListener('click', () => {
-      if (PatPlacerStorage.loadFromLocal()) {
+    panel.querySelector('#patplacer-restore-btn').addEventListener('click', async () => {
+      if (await PatPlacerStorage.loadFromLocal()) {
         panel.querySelector('#patplacer-autosave-row').style.display = 'none';
       }
     });
@@ -1115,7 +1373,13 @@
     const uploadArea = panel.querySelector('#patplacer-upload-area');
     const fileInput = panel.querySelector('#patplacer-file-input');
 
-    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('click', () => {
+      if (!state.colorsCaptured) {
+        updateStatus('⚠️ Open the color picker first to capture your available colors');
+        return;
+      }
+      fileInput.click();
+    });
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
       uploadArea.style.borderColor = 'var(--pp-accent)';
@@ -1126,6 +1390,10 @@
     uploadArea.addEventListener('drop', (e) => {
       e.preventDefault();
       uploadArea.style.borderColor = '';
+      if (!state.colorsCaptured) {
+        updateStatus('⚠️ Open the color picker first to capture your available colors');
+        return;
+      }
       if (e.dataTransfer.files.length > 0) {
         handleImageUpload(e.dataTransfer.files[0]);
       }
@@ -1144,6 +1412,9 @@
 
     // Capture anchor button
     panel.querySelector('#patplacer-capture-btn').addEventListener('click', startDraftCapture);
+    
+    // Move artwork button
+    panel.querySelector('#patplacer-move-btn').addEventListener('click', showMoveArtworkPanel);
 
     // Refresh charges button
     panel.querySelector('#patplacer-refresh-charges').addEventListener('click', fetchCharges);
@@ -1210,6 +1481,191 @@
     console.log(`[PatPlacer] ${message}`);
   }
 
+  // ============================================================
+  // MOVE ARTWORK PANEL
+  // ============================================================
+  let moveArtworkPanelOpen = false;
+  let moveKeydownHandler = null;
+  let moveKeyupHandler = null;
+  
+  function showMoveArtworkPanel() {
+    if (!state.anchorSet) {
+      updateStatus('Set anchor first before moving artwork');
+      return;
+    }
+    
+    // Check if panel already exists
+    if (document.getElementById('patplacer-move-panel')) {
+      return;
+    }
+    
+    moveArtworkPanelOpen = true;
+    
+    const movePanel = document.createElement('div');
+    movePanel.id = 'patplacer-move-panel';
+    movePanel.className = 'pp-move-panel';
+    
+    movePanel.innerHTML = `
+      <div class="pp-move-header">
+        <span class="pp-move-title">Move Artwork</span>
+        <button class="pp-move-close" id="patplacer-move-close">✕</button>
+      </div>
+      <div class="pp-move-controls">
+        <div></div>
+        <button class="pp-move-btn" id="pp-move-up" title="Move Up (W)">▲</button>
+        <div></div>
+        <button class="pp-move-btn" id="pp-move-left" title="Move Left (A)">◄</button>
+        <div class="pp-move-center">1px</div>
+        <button class="pp-move-btn" id="pp-move-right" title="Move Right (D)">►</button>
+        <div></div>
+        <button class="pp-move-btn" id="pp-move-down" title="Move Down (S)">▼</button>
+        <div></div>
+      </div>
+      <div class="pp-move-hint">Use WASD or Arrow keys</div>
+    `;
+    
+    document.body.appendChild(movePanel);
+    
+    // Make draggable
+    const header = movePanel.querySelector('.pp-move-header');
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.pp-move-close')) return;
+      isDragging = true;
+      offsetX = e.clientX - movePanel.offsetLeft;
+      offsetY = e.clientY - movePanel.offsetTop;
+      movePanel.style.cursor = 'grabbing';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      movePanel.style.left = `${e.clientX - offsetX}px`;
+      movePanel.style.top = `${e.clientY - offsetY}px`;
+      movePanel.style.transform = 'none';
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      movePanel.style.cursor = '';
+    });
+    
+    // Move artwork function
+    function moveArtwork(deltaX, deltaY) {
+      if (!state.anchorSet) return;
+      
+      // Update anchor pixel position
+      state.anchorPixel.x += deltaX;
+      state.anchorPixel.y += deltaY;
+      
+      // Handle tile overflow
+      while (state.anchorPixel.x < 0) {
+        state.anchorPixel.x += CONFIG.TILE_SIZE;
+        state.anchorTile.x -= 1;
+      }
+      while (state.anchorPixel.x >= CONFIG.TILE_SIZE) {
+        state.anchorPixel.x -= CONFIG.TILE_SIZE;
+        state.anchorTile.x += 1;
+      }
+      while (state.anchorPixel.y < 0) {
+        state.anchorPixel.y += CONFIG.TILE_SIZE;
+        state.anchorTile.y -= 1;
+      }
+      while (state.anchorPixel.y >= CONFIG.TILE_SIZE) {
+        state.anchorPixel.y -= CONFIG.TILE_SIZE;
+        state.anchorTile.y += 1;
+      }
+      
+      // Update UI
+      document.getElementById('patplacer-tile-pos').textContent = `(${state.anchorTile.x}, ${state.anchorTile.y})`;
+      document.getElementById('patplacer-pixel-pos').textContent = `(${state.anchorPixel.x}, ${state.anchorPixel.y})`;
+      
+      console.log(`[PatPlacer] Moved to tile (${state.anchorTile.x}, ${state.anchorTile.y}), pixel (${state.anchorPixel.x}, ${state.anchorPixel.y})`);
+      
+      // Update overlay if enabled - use correct function based on overlay mode
+      if (state.templateOverlayEnabled) {
+        processImageIntoChunks().then(() => {
+          triggerMapRefresh();
+        });
+      } else if (state.draftOverlayEnabled) {
+        processPlacedPixelsIntoChunks().then(() => {
+          triggerMapRefresh();
+        });
+      }
+    }
+    
+    // Button click handlers
+    document.getElementById('pp-move-up').addEventListener('click', () => moveArtwork(0, -1));
+    document.getElementById('pp-move-down').addEventListener('click', () => moveArtwork(0, 1));
+    document.getElementById('pp-move-left').addEventListener('click', () => moveArtwork(-1, 0));
+    document.getElementById('pp-move-right').addEventListener('click', () => moveArtwork(1, 0));
+    
+    // Keyboard handling (WASD + Arrow keys)
+    const keysPressed = new Set();
+    
+    moveKeydownHandler = (e) => {
+      if (!moveArtworkPanelOpen) return;
+      
+      const key = e.key.toLowerCase();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        e.preventDefault();
+        
+        if (keysPressed.has(key)) return; // Already pressed
+        keysPressed.add(key);
+        
+        switch (key) {
+          case 'w':
+          case 'arrowup':
+            moveArtwork(0, -1);
+            break;
+          case 's':
+          case 'arrowdown':
+            moveArtwork(0, 1);
+            break;
+          case 'a':
+          case 'arrowleft':
+            moveArtwork(-1, 0);
+            break;
+          case 'd':
+          case 'arrowright':
+            moveArtwork(1, 0);
+            break;
+        }
+      }
+    };
+    
+    moveKeyupHandler = (e) => {
+      const key = e.key.toLowerCase();
+      keysPressed.delete(key);
+    };
+    
+    document.addEventListener('keydown', moveKeydownHandler);
+    document.addEventListener('keyup', moveKeyupHandler);
+    
+    // Close panel
+    function closeMovePanel() {
+      moveArtworkPanelOpen = false;
+      
+      // Remove keyboard handlers
+      if (moveKeydownHandler) {
+        document.removeEventListener('keydown', moveKeydownHandler);
+        moveKeydownHandler = null;
+      }
+      if (moveKeyupHandler) {
+        document.removeEventListener('keyup', moveKeyupHandler);
+        moveKeyupHandler = null;
+      }
+      
+      // Remove panel
+      if (movePanel.parentNode) {
+        movePanel.parentNode.removeChild(movePanel);
+      }
+    }
+    
+    document.getElementById('patplacer-move-close').addEventListener('click', closeMovePanel);
+  }
+
   // Format large numbers with K/M suffix
   function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -1243,15 +1699,37 @@
       state.imageHeight = bitmap.height;
       
       // Reset processing settings to defaults when new image is uploaded
-      resetProcessingSettings(bitmap.width, bitmap.height);
+      // The defaults include resize to max 100 pixels while maintaining aspect ratio
+      const maxDim = 100;
+      let defaultWidth, defaultHeight;
       
-      // Get full resolution image data for processing
+      if (bitmap.width <= maxDim && bitmap.height <= maxDim) {
+        // Image is already small enough
+        defaultWidth = bitmap.width;
+        defaultHeight = bitmap.height;
+      } else if (bitmap.width >= bitmap.height) {
+        // Landscape or square
+        defaultWidth = maxDim;
+        defaultHeight = Math.round(bitmap.height * (maxDim / bitmap.width));
+      } else {
+        // Portrait
+        defaultHeight = maxDim;
+        defaultWidth = Math.round(bitmap.width * (maxDim / bitmap.height));
+      }
+      
+      resetProcessingSettings(defaultWidth, defaultHeight);
+      
+      // Apply default processing immediately so preview matches processing panel defaults
+      // This ensures consistency between initial preview and what "Apply" would produce
+      await applyDefaultProcessing();
+      
+      // Get full resolution image data for processing (only used as fallback)
       const fullCanvas = document.createElement('canvas');
-      fullCanvas.width = bitmap.width;
-      fullCanvas.height = bitmap.height;
+      fullCanvas.width = state.imageWidth;
+      fullCanvas.height = state.imageHeight;
       const fullCtx = fullCanvas.getContext('2d');
-      fullCtx.drawImage(bitmap, 0, 0);
-      state.imageData = fullCtx.getImageData(0, 0, bitmap.width, bitmap.height);
+      fullCtx.drawImage(state.imageBitmap, 0, 0);
+      state.imageData = fullCtx.getImageData(0, 0, state.imageWidth, state.imageHeight);
 
       // Count unique colors
       const colorSet = new Set();
@@ -2190,6 +2668,69 @@
   }
   
   /**
+   * Apply default processing when image is first uploaded
+   * This ensures the initial preview matches what the processing panel would produce
+   */
+  async function applyDefaultProcessing() {
+    if (!state.originalBitmap) {
+      return;
+    }
+    
+    try {
+      // Initialize processor if needed
+      if (!imageProcessor) {
+        if (window.PatPlacerImageProcessor) {
+          imageProcessor = new window.PatPlacerImageProcessor();
+        } else {
+          console.warn('[PatPlacer] Image processor not available for default processing');
+          // Fallback: just use original with basic quantization
+          return;
+        }
+      }
+      
+      await imageProcessor.loadFromBitmap(state.originalBitmap);
+      
+      // Apply default resize (to processingSettings.width x processingSettings.height)
+      // Default resampling is 'nearest'
+      imageProcessor.resize(
+        processingSettings.width,
+        processingSettings.height,
+        processingSettings.resamplingMethod || 'nearest'
+      );
+      
+      // Apply default quantization (no dithering by default)
+      // Default color matching is 'lab'
+      const transparencyOptions = {
+        paintTransparentPixels: processingSettings.paintTransparent || false,
+        paintWhitePixels: processingSettings.paintWhite !== false,
+        transparencyThreshold: processingSettings.transparencyThreshold || 128,
+        whiteThreshold: processingSettings.whiteThreshold || 230
+      };
+      
+      imageProcessor.quantize(
+        CONFIG.COLOR_PALETTE,
+        processingSettings.colorMatchingMethod || 'lab',
+        transparencyOptions
+      );
+      
+      // Get result
+      const resultCanvas = imageProcessor.getCanvas();
+      state.imageBitmap = await createImageBitmap(resultCanvas);
+      state.imageWidth = resultCanvas.width;
+      state.imageHeight = resultCanvas.height;
+      
+      // Get ImageData for buildPixelList
+      const ctx = resultCanvas.getContext('2d');
+      state.imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
+      
+      console.log(`[PatPlacer] Applied default processing: ${resultCanvas.width}×${resultCanvas.height}`);
+    } catch (error) {
+      console.error('[PatPlacer] Error applying default processing:', error);
+      // On error, fall back to original behavior
+    }
+  }
+  
+  /**
    * Apply processing and prepare for placement
    */
   async function applyProcessing() {
@@ -2681,9 +3222,30 @@
       // Update UI
       document.getElementById('patplacer-tile-pos').textContent = `(${tileX}, ${tileY})`;
       document.getElementById('patplacer-pixel-pos').textContent = `(${pixelX}, ${pixelY})`;
+      
+      // Show Move button now that anchor is set
+      const moveBtn = document.getElementById('patplacer-move-btn');
+      if (moveBtn) moveBtn.style.display = '';
 
       stopDraftCapture();
-      updateStatus(`Anchor set at tile (${tileX}, ${tileY}), pixel (${pixelX}, ${pixelY})`);
+      
+      // Check if anchor matches saved anchor (if we have one from a loaded save)
+      if (state.savedAnchor) {
+        const matches = checkAnchorMatchesSaved();
+        if (matches) {
+          updateStatus(`✓ Anchor set at saved position: tile (${tileX}, ${tileY}), pixel (${pixelX}, ${pixelY})`);
+          hideSavedAnchorArrow();
+        } else {
+          // Anchor doesn't match - warn user but allow it
+          const savedTile = state.savedAnchor.tile;
+          const savedPixel = state.savedAnchor.pixel;
+          updateStatus(`⚠️ Anchor differs from save! Current: (${tileX},${tileY})/(${pixelX},${pixelY}) | Saved: (${savedTile.x},${savedTile.y})/(${savedPixel.x},${savedPixel.y})`);
+          // Keep arrow visible so user can see the saved position
+        }
+      } else {
+        updateStatus(`Anchor set at tile (${tileX}, ${tileY}), pixel (${pixelX}, ${pixelY})`);
+      }
+      
       updatePlaceButtonState();
 
       // Auto-enable template overlay when anchor is set and image is loaded
@@ -2712,6 +3274,7 @@
   
   /**
    * Place the next batch of pixels based on available charges
+   * Pre-scans to identify pixels that need placement vs already correct
    */
   async function placeNextBatch() {
     if (!state.imageLoaded || !state.anchorSet) {
@@ -2775,19 +3338,10 @@
 
     // Calculate batch size based on charges
     // Safety margin: Always leave 2 charges unused to prevent 403s
-    // User request: "IF THE USER'S CHARGE IS 17 THEN THE PLACEABLE BATCH IS ONLY 15"
-    // Also ensure we use integer values (Math.floor)
     let availableCharges = Math.floor(Math.max(0, state.currentCharges - 2));
     
-    // Note: In the first batch, we also have the anchor draft (1 pixel).
-    // So if charges=17, batch=15. Total drafts = 1(anchor) + 15(batch) = 16.
-    // Remaining charges = 17 - 16 = 1. This is safe.
-    // In subsequent batches, total drafts = 15. Remaining = 2. This is very safe.
-    
-    const batchSize = Math.floor(Math.min(availableCharges, remaining));
-    
-    // Check if we have any pixels to place
-    if (batchSize <= 0) {
+    // Check if we have any charges to use
+    if (availableCharges <= 0) {
       state.isPlacing = false;
       if (state.currentBatchIndex === 0 && state.currentCharges <= 2) {
         updateStatus('Need at least 3 charges (1 for anchor + 2 buffer)');
@@ -2796,52 +3350,98 @@
       }
       return;
     }
+
+    // ============================================
+    // PHASE 1: PRE-SCAN - Calculate batch with skip detection
+    // ============================================
+    updateStatus('Scanning pixels...');
     
     const batchStart = state.currentBatchIndex;
-    const batchEnd = batchStart + batchSize;
+    const pixelsToPlace = [];  // Pixels that need to be placed
+    const pixelsToSkip = [];   // Pixels already correct (will be marked as done)
+    
+    // Scan through remaining pixels until we have enough to place OR run out of pixels
+    let scanIndex = batchStart;
+    while (pixelsToPlace.length < availableCharges && scanIndex < state.allPixels.length) {
+      const pixel = state.allPixels[scanIndex];
+      
+      if (isPixelAlreadyCorrect(pixel)) {
+        pixelsToSkip.push({ index: scanIndex, pixel });
+      } else {
+        pixelsToPlace.push({ index: scanIndex, pixel });
+      }
+      scanIndex++;
+    }
+    
+    const totalInBatch = pixelsToPlace.length + pixelsToSkip.length;
+    const placedCount = pixelsToPlace.length;
+    const skippedCount = pixelsToSkip.length;
+    
+    console.log(`[PatPlacer] Batch scan complete: ${placedCount} to place, ${skippedCount} to skip (already correct)`);
+    
+    // Check if there's anything to do
+    if (totalInBatch <= 0) {
+      state.isPlacing = false;
+      updateStatus('No pixels to process in this range');
+      return;
+    }
 
-    updateStatus(`Placing batch of ${batchSize} drafts...`);
+    // ============================================
+    // PHASE 2: PLACEMENT - Place the pixels that need it
+    // ============================================
+    updateStatus(`Placing ${placedCount} drafts (${skippedCount} already correct)...`);
 
     // Clear previous batch's placed pixels and prepare for new batch
     state.placedPixels = [];
 
-    let placedInBatch = 0;
-    for (let i = batchStart; i < batchEnd && state.isPlacing; i++) {
+    let processedCount = 0;
+    
+    // Process all pixels in order (both skip and place)
+    for (let i = batchStart; i < scanIndex && state.isPlacing; i++) {
       const pixel = state.allPixels[i];
-      placeDraft(pixel);
-      state.placedPixels.push(pixel);
-      state.currentBatchIndex++;
-      placedInBatch++;
+      const isSkipped = pixelsToSkip.some(s => s.index === i);
+      
+      if (!isSkipped) {
+        // Actually place this pixel
+        placeDraft(pixel);
+        state.placedPixels.push(pixel);
+      }
+      
+      processedCount++;
 
-      // Update progress
-      const percent = (placedInBatch / batchSize) * 100;
+      // Update progress bar (batch placement progress, not overall)
+      const percent = (processedCount / totalInBatch) * 100;
       const progressFillEl = document.getElementById('patplacer-progress-fill');
       const progressTextEl = document.getElementById('patplacer-progress-text');
       if (progressFillEl) progressFillEl.style.width = `${percent}%`;
-      if (progressTextEl) progressTextEl.textContent = `${placedInBatch} / ${batchSize}`;
-      
-      // Update info panel progress
-      const overallPercent = (state.currentBatchIndex / state.allPixels.length) * 100;
-      const infoFill = document.getElementById('patplacer-info-progress-fill');
-      const infoPlaced = document.getElementById('patplacer-info-placed');
-      if (infoFill) infoFill.style.width = `${overallPercent}%`;
-      if (infoPlaced) infoPlaced.textContent = state.currentBatchIndex.toLocaleString();
+      if (progressTextEl) {
+        const placedSoFar = state.placedPixels.length;
+        const skippedSoFar = processedCount - placedSoFar;
+        if (skippedSoFar > 0) {
+          progressTextEl.textContent = `Drafting: ${placedSoFar} placed, ${skippedSoFar} skipped`;
+        } else {
+          progressTextEl.textContent = `Drafting: ${placedSoFar} / ${placedCount}`;
+        }
+      }
 
       // Small delay to not overwhelm the browser
-      if (placedInBatch % 100 === 0) {
+      if (processedCount % 100 === 0) {
         await sleep(10);
       }
     }
+    
+    // Store pending batch info - progress updates after user confirms
+    state.pendingBatchCount = totalInBatch;
+    state.pendingSkippedCount = skippedCount;
 
     // Trigger wplace UI to recognize the new drafts
     triggerDraftUIRefresh();
     
     // Debug: Log the Map state
-    console.log(`[PatPlacer] Batch complete. Placed ${placedInBatch} drafts.`);
+    console.log(`[PatPlacer] Batch drafted. ${placedCount} drafts placed, ${skippedCount} skipped. Awaiting user confirmation.`);
     debugDraftMap();
 
-    // Auto-save progress
-    PatPlacerStorage.saveToLocal();
+    // NOTE: Don't auto-save here - save after user confirms
 
     state.isPlacing = false;
     if (progressEl) progressEl.style.display = 'none';
@@ -2849,14 +3449,18 @@
     // Restore button icon
     if (btnIcon) btnIcon.style.display = '';
     
-    const newRemaining = state.allPixels.length - state.currentBatchIndex;
+    // Calculate remaining based on what WILL be after confirmation
+    const pendingConfirmedIndex = state.currentBatchIndex + totalInBatch;
+    const newRemaining = state.allPixels.length - pendingConfirmedIndex;
     
     if (newRemaining <= 0) {
-      updateStatus(`✓ Complete! All ${state.allPixels.length} drafts placed. Confirm on map.`);
-      btnTextEl.textContent = '✓ Complete!';
+      const skipMsg = skippedCount > 0 ? ` (${skippedCount} already correct)` : '';
+      updateStatus(`✓ All ${state.allPixels.length} drafts placed${skipMsg}. Confirm on map to complete!`);
+      btnTextEl.textContent = 'Awaiting Confirm';
       btn.disabled = true;
     } else {
-      updateStatus(`Batch done! ${placedInBatch} drafts placed. ${newRemaining} remaining.`);
+      const skipMsg = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
+      updateStatus(`${placedCount} drafts placed${skipMsg}. Confirm on map to update progress.`);
     }
 
     // Update UI
@@ -3081,6 +3685,46 @@
             if (state.draftOverlayEnabled) {
               console.log('[PatPlacer] Drafts confirmed - disabling draft overlay');
               state.draftOverlayEnabled = false;
+              
+              // Update progress NOW that user has confirmed
+              if (state.pendingBatchCount > 0) {
+                state.currentBatchIndex += state.pendingBatchCount;
+                
+                // Update info panel progress (overall) - this is the real progress
+                const overallPercent = (state.currentBatchIndex / state.allPixels.length) * 100;
+                const infoFill = document.getElementById('patplacer-info-progress-fill');
+                const infoPlaced = document.getElementById('patplacer-info-placed');
+                if (infoFill) infoFill.style.width = `${overallPercent}%`;
+                if (infoPlaced) infoPlaced.textContent = state.currentBatchIndex.toLocaleString();
+                
+                const confirmedCount = state.placedPixels.length;
+                const skippedCount = state.pendingSkippedCount;
+                const skipMsg = skippedCount > 0 ? ` (${skippedCount} skipped)` : '';
+                console.log(`[PatPlacer] Confirmed ${confirmedCount} pixels${skipMsg}. Total progress: ${state.currentBatchIndex}/${state.allPixels.length}`);
+                
+                // Reset pending counts
+                state.pendingBatchCount = 0;
+                state.pendingSkippedCount = 0;
+                
+                // Update batch UI to reflect new progress
+                updateBatchUI();
+                
+                // Re-enable button if there are more pixels to place
+                const btn = document.getElementById('patplacer-batch-btn');
+                const remaining = state.allPixels.length - state.currentBatchIndex;
+                if (btn && remaining > 0) {
+                  btn.disabled = false;
+                } else if (btn && remaining <= 0) {
+                  // Mark as complete
+                  const btnTextEl = document.getElementById('patplacer-btn-text');
+                  if (btnTextEl) btnTextEl.textContent = '✓ Complete!';
+                  btn.disabled = true;
+                }
+                
+                // Auto-save progress after confirmation
+                PatPlacerStorage.saveToLocal();
+              }
+              
               state.placedPixels = [];
               state.chunkedTiles.clear();
               setTimeout(triggerMapRefresh, 500);
@@ -3089,7 +3733,7 @@
                 console.log('[PatPlacer] Auto-refreshing charges after paint');
                 fetchCharges();
               }, 1000);
-              updateStatus('Drafts painted! Refreshing charges...');
+              updateStatus('Drafts confirmed! Progress updated. Refreshing charges...');
             }
           }
         } catch (e) {
@@ -3100,9 +3744,10 @@
       // Call original fetch
       const response = await originalFetch.apply(this, args);
 
-      // Intercept PNG tile responses when overlay is enabled
-      const overlayActive = state.templateOverlayEnabled || state.draftOverlayEnabled;
-      if (overlayActive && typeof url === 'string') {
+      // Intercept PNG tile responses
+      // 1. Cache original tile data for skip-correct-pixels feature (always)
+      // 2. Apply overlay if enabled
+      if (typeof url === 'string') {
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('image/png') && url.includes('.png')) {
           // Check if this is a wplace tile (pattern: /tileX/tileY.png)
@@ -3112,16 +3757,46 @@
             const tileY = parseInt(tileMatch[2], 10);
             const tileKey = `${tileX},${tileY}`;
 
-            const chunkBitmap = state.chunkedTiles.get(tileKey);
-            if (chunkBitmap) {
+            // Clone the response to get original tile data
+            const cloned = response.clone();
+            const originalBlob = await cloned.blob();
+            
+            // Cache original tile ImageData for skip-correct-pixels feature
+            try {
+              const bitmap = await createImageBitmap(originalBlob);
+              const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(bitmap, 0, 0);
+              const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+              state.originalTilesData.set(tileKey, imageData);
+              bitmap.close();
+            } catch (e) {
+              console.warn('[PatPlacer] Error caching tile data:', tileKey, e);
+            }
+            
+            // Apply overlay if enabled
+            const overlayActive = state.templateOverlayEnabled || state.draftOverlayEnabled;
+            const anchorMarker = getAnchorMarkerForTile(tileKey);
+            
+            if (overlayActive || anchorMarker) {
               try {
-                const cloned = response.clone();
-                const originalBlob = await cloned.blob();
-                // Pass the correct opacity based on overlay mode
-                const opacity = state.overlayMode === 'draft' ? state.draftOverlayOpacity : state.templateOverlayOpacity;
-                const processedBlob = await compositeTile(originalBlob, chunkBitmap, opacity);
+                let currentBlob = originalBlob;
                 
-                return new Response(processedBlob, {
+                // First apply template/draft overlay if enabled
+                if (overlayActive) {
+                  const chunkBitmap = state.chunkedTiles.get(tileKey);
+                  if (chunkBitmap) {
+                    const opacity = state.overlayMode === 'draft' ? state.draftOverlayOpacity : state.templateOverlayOpacity;
+                    currentBlob = await compositeTile(currentBlob, chunkBitmap, opacity);
+                  }
+                }
+                
+                // Then apply anchor marker overlay on top (always full opacity)
+                if (anchorMarker) {
+                  currentBlob = await compositeTile(currentBlob, anchorMarker, 1.0);
+                }
+                
+                return new Response(currentBlob, {
                   headers: response.headers,
                   status: response.status,
                   statusText: response.statusText,
@@ -3433,6 +4108,221 @@
   }
 
   // ============================================================
+  // SAVED ANCHOR ARROW OVERLAY (Map-based marker)
+  // ============================================================
+  
+  // Separate chunked tiles for the anchor marker overlay
+  let anchorMarkerTiles = new Map();
+  let anchorMarkerEnabled = false;
+  
+  /**
+   * Show a marker on the map at the saved anchor position.
+   * This draws directly onto the map tiles like the template overlay.
+   */
+  function showSavedAnchorArrow() {
+    if (!state.savedAnchor) return;
+    
+    anchorMarkerEnabled = true;
+    
+    // Generate the marker tile overlay
+    generateAnchorMarkerTiles();
+    
+    // Install fetch interceptor if not already
+    installFetchInterceptor();
+    
+    // Trigger map refresh to show the marker
+    setTimeout(triggerMapRefresh, 200);
+    
+    console.log(`[PatPlacer] Showing anchor marker at tile(${state.savedAnchor.tile.x}, ${state.savedAnchor.tile.y}), pixel(${state.savedAnchor.pixel.x}, ${state.savedAnchor.pixel.y})`);
+    
+    // Also show a dismissible info panel
+    showAnchorInfoPanel();
+  }
+  
+  /**
+   * Generate tile chunks for the anchor marker (a visible marker around the saved anchor point)
+   */
+  function generateAnchorMarkerTiles() {
+    anchorMarkerTiles.clear();
+    
+    if (!state.savedAnchor) return;
+    
+    const { tile, pixel } = state.savedAnchor;
+    const tileKey = `${tile.x},${tile.y}`;
+    
+    // Create a marker bitmap for this tile
+    const markerCanvas = new OffscreenCanvas(CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    const ctx = markerCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    
+    // Draw a prominent marker at the anchor pixel position
+    const px = pixel.x;
+    const py = pixel.y;
+    
+    // Draw crosshair/target marker
+    const markerColor = '#FFD700'; // Gold
+    const centerColor = '#FF0000'; // Red center
+    const outlineColor = '#000000'; // Black outline
+    const markerSize = 7; // Size of the marker arms
+    
+    // Draw black outline first (larger)
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 3;
+    
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(px + 0.5, Math.max(0, py - markerSize));
+    ctx.lineTo(px + 0.5, Math.min(CONFIG.TILE_SIZE, py + markerSize + 1));
+    ctx.stroke();
+    
+    // Horizontal line  
+    ctx.beginPath();
+    ctx.moveTo(Math.max(0, px - markerSize), py + 0.5);
+    ctx.lineTo(Math.min(CONFIG.TILE_SIZE, px + markerSize + 1), py + 0.5);
+    ctx.stroke();
+    
+    // Draw gold crosshair on top
+    ctx.strokeStyle = markerColor;
+    ctx.lineWidth = 1;
+    
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(px + 0.5, Math.max(0, py - markerSize));
+    ctx.lineTo(px + 0.5, Math.min(CONFIG.TILE_SIZE, py + markerSize + 1));
+    ctx.stroke();
+    
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(Math.max(0, px - markerSize), py + 0.5);
+    ctx.lineTo(Math.min(CONFIG.TILE_SIZE, px + markerSize + 1), py + 0.5);
+    ctx.stroke();
+    
+    // Draw RED center pixel
+    ctx.fillStyle = centerColor;
+    ctx.fillRect(px, py, 1, 1);
+    
+    // Draw corner brackets for visibility
+    ctx.strokeStyle = markerColor;
+    ctx.lineWidth = 2;
+    const bracketSize = 4;
+    const bracketOffset = 3;
+    
+    // Top-left bracket
+    ctx.beginPath();
+    ctx.moveTo(px - bracketOffset - bracketSize, py - bracketOffset);
+    ctx.lineTo(px - bracketOffset, py - bracketOffset);
+    ctx.lineTo(px - bracketOffset, py - bracketOffset - bracketSize);
+    ctx.stroke();
+    
+    // Top-right bracket
+    ctx.beginPath();
+    ctx.moveTo(px + bracketOffset + bracketSize + 1, py - bracketOffset);
+    ctx.lineTo(px + bracketOffset + 1, py - bracketOffset);
+    ctx.lineTo(px + bracketOffset + 1, py - bracketOffset - bracketSize);
+    ctx.stroke();
+    
+    // Bottom-left bracket
+    ctx.beginPath();
+    ctx.moveTo(px - bracketOffset - bracketSize, py + bracketOffset + 1);
+    ctx.lineTo(px - bracketOffset, py + bracketOffset + 1);
+    ctx.lineTo(px - bracketOffset, py + bracketOffset + bracketSize + 1);
+    ctx.stroke();
+    
+    // Bottom-right bracket
+    ctx.beginPath();
+    ctx.moveTo(px + bracketOffset + bracketSize + 1, py + bracketOffset + 1);
+    ctx.lineTo(px + bracketOffset + 1, py + bracketOffset + 1);
+    ctx.lineTo(px + bracketOffset + 1, py + bracketOffset + bracketSize + 1);
+    ctx.stroke();
+    
+    // Draw a pulsing ring (outer)
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px + 0.5, py + 0.5, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Store the marker bitmap
+    anchorMarkerTiles.set(tileKey, markerCanvas.transferToImageBitmap());
+    
+    console.log(`[PatPlacer] Generated anchor marker tile: ${tileKey}`);
+  }
+  
+  /**
+   * Show info panel about the saved anchor (DOM element for dismissing)
+   */
+  function showAnchorInfoPanel() {
+    // Remove existing panel
+    hideAnchorInfoPanel();
+    
+    const panel = document.createElement('div');
+    panel.id = 'patplacer-anchor-info';
+    panel.className = 'pp-anchor-arrow';
+    
+    panel.innerHTML = `
+      <div class="pp-arrow-content">
+        <div class="pp-arrow-pointer">⊕</div>
+        <div class="pp-arrow-info">
+          <div class="pp-arrow-label">SAVED ANCHOR POSITION</div>
+          <div class="pp-arrow-coords">
+            Tile: (${state.savedAnchor.tile.x}, ${state.savedAnchor.tile.y})<br>
+            Pixel: (${state.savedAnchor.pixel.x}, ${state.savedAnchor.pixel.y})
+          </div>
+          <div class="pp-arrow-hint">Navigate to marker on map</div>
+        </div>
+        <button class="pp-arrow-dismiss" id="pp-anchor-dismiss" title="Dismiss marker">✕</button>
+      </div>
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // Position it at top-right of viewport
+    panel.style.position = 'fixed';
+    panel.style.top = '80px';
+    panel.style.right = '20px';
+    
+    document.getElementById('pp-anchor-dismiss').addEventListener('click', () => {
+      hideSavedAnchorArrow();
+      updateStatus('Anchor marker dismissed');
+    });
+  }
+  
+  function hideAnchorInfoPanel() {
+    const panel = document.getElementById('patplacer-anchor-info');
+    if (panel) panel.remove();
+  }
+  
+  /**
+   * Hide the saved anchor arrow overlay
+   */
+  function hideSavedAnchorArrow() {
+    anchorMarkerEnabled = false;
+    anchorMarkerTiles.clear();
+    hideAnchorInfoPanel();
+    setTimeout(triggerMapRefresh, 100);
+  }
+  
+  /**
+   * Get anchor marker bitmap for a specific tile (called from fetch interceptor)
+   */
+  function getAnchorMarkerForTile(tileKey) {
+    if (!anchorMarkerEnabled) return null;
+    return anchorMarkerTiles.get(tileKey);
+  }
+  
+  /**
+   * Check if current anchor matches saved anchor position
+   */
+  function checkAnchorMatchesSaved() {
+    if (!state.savedAnchor || !state.anchorSet) return false;
+    
+    return state.anchorTile.x === state.savedAnchor.tile.x &&
+           state.anchorTile.y === state.savedAnchor.tile.y &&
+           state.anchorPixel.x === state.savedAnchor.pixel.x &&
+           state.anchorPixel.y === state.savedAnchor.pixel.y;
+  }
+
+  // ============================================================
   // UTILITIES
   // ============================================================
   function sleep(ms) {
@@ -3461,13 +4351,18 @@
     // This makes PatPlacer much safer against wplace's potential code integrity checks
     hookDraftMap();
     
-    extractColorPalette();
+    // Don't extract palette yet - wait for user to open color picker
+    // This ensures we only use colors available to THIS user
+    // extractColorPalette();
     
     // Initialize image processor - wait a moment for it to be available
     await initImageProcessor();
     
     createPanel();
     showPanel();
+    
+    // Setup observer to capture colors when user opens palette
+    setupColorPaletteObserver();
     
     // Fetch charges on startup
     await fetchCharges();
@@ -3481,8 +4376,8 @@
     }
     
     console.log('[PatPlacer] Initialized successfully');
-    console.log('[PatPlacer] Draw a pixel on the canvas to capture the draft Map');
-    updateStatus('Ready. Upload an image to begin.');
+    console.log('[PatPlacer] Open the color picker to capture available colors');
+    updateStatus('Open wplace color picker to capture available colors');
   }
 
   // Expose API
